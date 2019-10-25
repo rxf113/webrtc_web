@@ -305,6 +305,8 @@ customSDK = {
         if(localStream !== null){
             localStream.getTracks().forEach(track => track.stop());
         }
+        localVideo.srcObject = null;
+        remoteVideo.srcObject = null;
         pc = new PeerConnection(iceServer);
         resetPeerConnection(pc);
         localStream = null;
