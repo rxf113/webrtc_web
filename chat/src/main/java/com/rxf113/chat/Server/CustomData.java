@@ -7,17 +7,10 @@ import java.util.Map;
  */
 public class CustomData {
 
-    private Map<String,Object> info;
+   // private Map<String,Object> info;
     private Integer type;
     private String msg;
 
-    public Map<String, Object> getInfo() {
-        return info;
-    }
-
-    public void setInfo(Map<String, Object> info) {
-        this.info = info;
-    }
 
     public Integer getType() {
         return type;

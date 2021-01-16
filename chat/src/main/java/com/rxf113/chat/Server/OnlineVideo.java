@@ -1,6 +1,8 @@
 package com.rxf113.chat.Server;
 
 import com.alibaba.fastjson.JSONObject;
+import com.rxf113.chat.enums.ReceiveTypeEnum;
+import com.rxf113.chat.enums.SendTypeEnum;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -65,6 +67,9 @@ class CustomChannelInitializer extends ChannelInitializer<SocketChannel> {
     }
 }
 
+/**
+ * 入站处理
+ */
 class CustomChannelInboundHandler extends SimpleChannelInboundHandler<TextWebSocketFrame> {
 
     //name - userInfo
@@ -77,12 +82,10 @@ class CustomChannelInboundHandler extends SimpleChannelInboundHandler<TextWebSoc
     /**
      * 登录
      *
-     * @param infoMap
      * @param channel
      * @param returnData
      */
-    private void login(Map<String, Object> infoMap, Channel channel, CustomData returnData) {
-        String userName = (String) infoMap.get("userName");
+    private void login(String userName, Channel channel, CustomData returnData) {
         System.out.println(userName);
         if (nameInfoMap.get(userName) == null) {
             //存储信息
@@ -94,12 +97,12 @@ class CustomChannelInboundHandler extends SimpleChannelInboundHandler<TextWebSoc
             userInfo.setStatus(1);
             nameInfoMap.put(userName, userInfo);
             channelNameMap.put(channel, userName);
-            returnData.setType(ReceiveType.登录成功.getValue());
+            returnData.setType(SendTypeEnum.loginSuccess.getValue());
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
             returnData.setMsg(userName + " 登陆成功 " + dateFormat.format(new Date()));
         } else {
             //用户名已存在
-            returnData.setType(ReceiveType.登录失败.getValue());
+            returnData.setType(SendTypeEnum.loginFailed.getValue());
             returnData.setMsg("登录失败(用户名已存在!)");
         }
     }
@@ -108,36 +111,35 @@ class CustomChannelInboundHandler extends SimpleChannelInboundHandler<TextWebSoc
     /**
      * 呼叫
      *
-     * @param infoMap
+     * @param responder 对方用户名
      * @param channel
      * @param returnData
      */
-    private void call(Map<String, Object> infoMap, Channel channel, CustomData returnData) {
-        String responder = (String) infoMap.get("responder");
+    private void call(String responder, Channel channel, CustomData returnData) {
+
         UserInfo answerUserInfo = nameInfoMap.get(responder);
         if (answerUserInfo != null) {
             if (answerUserInfo.getStatus() == 1) {
                 CustomData data = new CustomData();
                 Channel answerUserInfoChannel = answerUserInfo.getChannel();
                 Map<String, Object> dataMap = new HashMap<>(1);
-                dataMap.put("caller", channelNameMap.get(channel));
-                data.setType(ReceiveType.呼叫请求.getValue());
-                data.setInfo(dataMap);
+                data.setType(SendTypeEnum.called.getValue());
+                data.setMsg(channelNameMap.get(channel));
                 //通知被叫
                 answerUserInfoChannel.writeAndFlush(new TextWebSocketFrame(JSONObject.toJSONString(data)));
                 //更改状态 2忙碌
                 userInfoModify(channel, answerUserInfoChannel, 2);
 
-                returnData.setType(ReceiveType.呼叫成功.getValue());
+                returnData.setType(SendTypeEnum.callSuccess.getValue());
                 returnData.setMsg("呼叫成功!");
             } else {
                 //忙碌
-                returnData.setType(ReceiveType.未接听忙碌.getValue());
+                returnData.setType(SendTypeEnum.busy.getValue());
                 returnData.setMsg("用户忙,无法接听!");
             }
         } else {
             //离线
-            returnData.setType(ReceiveType.未接听不在线.getValue());
+            returnData.setType(SendTypeEnum.notOnline.getValue());
             returnData.setMsg("用户不在线!");
         }
     }
@@ -149,7 +151,7 @@ class CustomChannelInboundHandler extends SimpleChannelInboundHandler<TextWebSoc
      * @param channel
      */
     private void accept(CustomData customData, Channel channel) {
-        customData.setType(ReceiveType.接受.getValue());
+        customData.setType(SendTypeEnum.accepted.getValue());
         getRemoteChannel(channel).writeAndFlush(new TextWebSocketFrame(JSONObject.toJSONString(customData)));
     }
 
@@ -194,60 +196,86 @@ class CustomChannelInboundHandler extends SimpleChannelInboundHandler<TextWebSoc
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     protected void channelRead0(ChannelHandlerContext handlerContext, TextWebSocketFrame o) throws Exception {
         String content = o.text();
         Map map = JSONObject.parseObject(content, Map.class);
         Channel channel = handlerContext.channel();
         CustomData customData = JSONObject.parseObject(map.get("data").toString(), CustomData.class);
-        Map<String, Object> infoMap = customData.getInfo();
+        String msg = customData.getMsg();
         Integer type = customData.getType();
-        SendType sendType = SendType.getSendType(type);
+        ReceiveTypeEnum receiveTypeEnum = ReceiveTypeEnum.getSendType(type);
         //应答数据
         CustomData returnData = new CustomData();
-        switch (sendType) {
-            case 登录:
-                login(infoMap, channel, returnData);
+        switch (receiveTypeEnum) {
+            case login://呼叫
+                login(msg, channel, returnData);
                 break;
-            case 发送offer:
-            case 发送answer:
-                offerAnswer(sendType, channel, infoMap);
+            case sendOffer:
+            case sendAnswer:
+                offerAnswer(receiveTypeEnum, channel, msg);
                 break;
-            case 呼叫:
-                call(infoMap, channel, returnData);
+            case call:
+                call(msg, channel, returnData);
                 break;
-            case 接受:
+            case accept:
                 accept(customData, channel);
                 break;
-            case 拒绝:
-                refuse(channel);
-                break;
-            case 挂断:
-                cutOff(channel);
-                break;
-            case ICE候选:
-                customData.setType(ReceiveType.ICE候选.getValue());
+//            case 拒绝:
+//                refuse(channel);
+//                break;
+//            case 挂断:
+//                cutOff(channel);
+//                break;
+            case sendICE:
+                customData.setType(SendTypeEnum.receiveICE.getValue());
                 Channel remoteChannel = getRemoteChannel(channel);
                 remoteChannel.writeAndFlush(new TextWebSocketFrame(JSONObject.toJSONString(customData)));
                 break;
             default:
         }
+//        switch (sendType) {
+//            case 登录:
+//                login(infoMap, channel, returnData);
+//                break;
+//            case 发送offer:
+//            case 发送answer:
+//                offerAnswer(sendType, channel, infoMap);
+//                break;
+//            case 呼叫:
+//                call(infoMap, channel, returnData);
+//                break;
+//            case 接受:
+//                accept(customData, channel);
+//                break;
+//            case 拒绝:
+//                refuse(channel);
+//                break;
+//            case 挂断:
+//                cutOff(channel);
+//                break;
+//            case ICE候选:
+//                customData.setType(ReceiveType.ICE候选.getValue());
+//                Channel remoteChannel = getRemoteChannel(channel);
+//                remoteChannel.writeAndFlush(new TextWebSocketFrame(JSONObject.toJSONString(customData)));
+//                break;
+//            default:
+//        }
         channel.writeAndFlush(new TextWebSocketFrame(JSONObject.toJSONString(returnData)));
     }
 
     /**
      * offer answer 消息传递
      *
-     * @param type
+     * @param receiveTypeEnum
      * @param channel
-     * @param infoMap
+     * @param msg
      */
-    private void offerAnswer(SendType type, Channel channel, Map infoMap) {
+    private void offerAnswer(ReceiveTypeEnum receiveTypeEnum, Channel channel, String msg) {
         RoomInfo currentRoom = channelRooms.get(channel);
-        Channel remoteChannel = type == SendType.发送offer ? currentRoom.getReceiveChannel() : currentRoom.getCallChannel();
+        Channel remoteChannel = receiveTypeEnum == ReceiveTypeEnum.sendOffer ? currentRoom.getReceiveChannel() : currentRoom.getCallChannel();
         CustomData offerData = new CustomData();
-        offerData.setType(type == SendType.发送offer ? ReceiveType.接受offer.getValue() : ReceiveType.接受answer.getValue());
-        offerData.setInfo(infoMap);
+        offerData.setType(receiveTypeEnum == ReceiveTypeEnum.sendOffer ? SendTypeEnum.receiveOffer.getValue() : SendTypeEnum.receiveAnswer.getValue());
+        offerData.setMsg(msg);
         remoteChannel.writeAndFlush(new TextWebSocketFrame(JSONObject.toJSONString(offerData)));
     }
 

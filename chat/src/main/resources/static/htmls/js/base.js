@@ -5,6 +5,7 @@ var remoteVideo;
 var localStream = null;
 var socketAddress = "";
 
+//浏览器兼容
 var PeerConnection = (window.PeerConnection ||
     window.webkitPeerConnection00 ||
     window.webkitRTCPeerConnection ||
@@ -19,11 +20,11 @@ const iceServer = {
 };
 
 //创建PeerConnection实例
-var pc;
-    pc = new PeerConnection(iceServer);
+var pc = new PeerConnection(iceServer);
     //*****************
 var dc = pc.createDataChannel("my channel",{negotiated: true, id: 0});
 
+//收到消息
 dc.onmessage = function (event) {
     console.log(event);
     customSDK.dataChannel.data = event.data;

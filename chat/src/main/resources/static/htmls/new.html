@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="js/simpleSdk.js" type="text/javascript"></script>
+
+</head>
+<body>
+<input type="text" id="regist" value="123"/>
+<input type="button" value="登录" onclick="login()"/>
+
+<input type="text" id="callInput" value=""/>
+<button id="callButton" onclick="callRemote()">呼叫</button>
+
+<button id="hhh" onclick="simpleSdk.openLocalCamera()">预览画面</button>
+<video id="remoteVideo" autoplay style="width: 800px;height: 500px;background:#000;"></video>
+<video id="localVideo" autoplay style="width: 300px;height: 200px;background:#000;"></video>
+<script>
+    //呼叫  超时时间
+    function callRemote() {
+        remoteId = document.getElementById("callInput").value;
+        //checkParam(remoteId);
+        simpleSdk.call(remoteId,1000);
+    }
+
+    function login() {
+        var msg = document.getElementById("regist");
+        //checkParam(msg.value);
+        simpleSdk.login(msg.value);
+    }
+
+
+    //设置视频video标签
+    simpleSdk.setVideoTag("localVideo","remoteVideo");
+    //打开websocket连接
+    simpleSdk.openWebSocketConnection("ws://127.0.0.1:9000/ws");
+
+</script>
+<script>
+    //监听 登录成功
+    simpleSdk.on('login-success', function (e) {
+        console.log(e);
+        alert("登陆成功");
+    });
+    //监听 登录失败
+    simpleSdk.on('login-fail', function (e) {
+        console.log(e);
+        alert('登录失败' + e.data.msg);
+    });
+
+    //监听 呼叫成功
+    simpleSdk.on('not-online', function (e) {
+        console.log(e);
+        alert("对方不在线");
+    });
+
+    //监听 呼叫成功
+    simpleSdk.on('call-success', function (e) {
+        console.log(e);
+        alert(e.data.msg);
+    });
+
+    //监听 被呼叫
+    simpleSdk.on('called', function (e) {
+        console.log(e);
+        let caller = e.data.msg;
+        let r = confirm(`收到来自 [${caller}] 的视频通话邀请!`);
+        if (r) {
+            //接收
+            simpleSdk.accept();
+        } else {
+            simpleSdk.refuse();
+        }
+    });
+
+    //监听 对方已接受
+    simpleSdk.on('accepted', function () {
+        console.log("对方接受");
+        //alert('对方接受' + e.data.msg);
+    });
+</script>
+</body>
+</html>
