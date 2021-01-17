@@ -10,7 +10,8 @@ public enum SendTypeEnum {
     accepted(7),
     receiveOffer(8),
     receiveAnswer(9),
-    receiveICE(10);
+    receiveICE(10),
+    hangUp(11);
     //呼叫
     //call(4);
 

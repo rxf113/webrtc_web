@@ -1,13 +1,13 @@
 package com.rxf113.chat.Server;
 
-import java.util.Map;
 
 /**
+ * dto
+ *
  * @author rxf113
  */
-public class CustomData {
+public class DTO {
 
-   // private Map<String,Object> info;
     private Integer type;
     private String msg;
 

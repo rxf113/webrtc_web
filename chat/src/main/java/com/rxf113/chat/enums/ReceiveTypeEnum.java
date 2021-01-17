@@ -8,20 +8,21 @@ public enum ReceiveTypeEnum {
     call(4),
     sendOffer(6),
     sendAnswer(7),
-    sendICE(8);
+    sendICE(8),
+    hangUp(9);
 
     private int value = 0;
 
     ReceiveTypeEnum(int value){
         this.value =value;
     }
-    public static ReceiveTypeEnum getSendType(int value) {
+    public static ReceiveTypeEnum getReceiveTypeEnum(int value) {
         for (ReceiveTypeEnum type : ReceiveTypeEnum.values()) {
             if (type.getValue() == value) {
                 return type;
             }
         }
-        throw new RuntimeException("code error");
+        throw new RuntimeException("receiveTypeEnum not exists");
     }
     public int getValue() {
         return this.value;

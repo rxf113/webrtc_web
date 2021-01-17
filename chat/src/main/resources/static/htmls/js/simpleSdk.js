@@ -28,20 +28,12 @@ const iceServer = {
     }]
 };
 //创建PeerConnection实例
-const pc = new RTCPeerConnection(iceServer);
+let pc = new RTCPeerConnection(iceServer);
+let sender = null;
+let localStream = null;
+setPeerConnection(pc);
 
-//监听ice信息
-pc.onicecandidate = function (event) {
-    let dto = new DTO(event.candidate, sendTypeEnum.sendICE);
-    simpleSdk.webSocket.send(dto)
-};
-//监听远端流
-pc.ontrack = function (event) {
-    //console.log("收到远端流");
-    simpleSdk.remoteVideo.srcObject = event.streams[0];
-};
-
-//自定义的事件 收到webSocket消息后触发
+//自定义的事件 收到webSocket消息后根据type类型触发
 simpleCustomEvents = {
     loginSuccess: new CustomEvent('login-success'),
     loginFail: new CustomEvent('login-fail'),
@@ -91,27 +83,37 @@ sendTypeEnum = {
     //发送answer
     sendAnswer: 7,
     //发送ice
-    sendICE: 8
+    sendICE: 8,
+    //挂断
+    hangUp: 9
 };
+
 /**
  * 接收方的业务类型枚举
  */
 receiveTypeEnum = {
+    //登录成功
     loginSuccess: 1,
+    //登陆失败
     loginFail: 2,
     //被呼叫
     called: 3,
     //呼叫成功
     callSuccess: 4,
+    //忙碌
+    busy: 5,
+    //不在线
     notOnline: 6,
-//已接受
+    //已接受
     accepted: 7,
     //接收offer
     receiveOffer: 8,
     //接收answer
     receiveAnswer: 9,
     //接收ice
-    receiveICE: 10
+    receiveICE: 10,
+    //挂断
+    hangUp: 11
 };
 
 /**
@@ -120,7 +122,6 @@ receiveTypeEnum = {
 simpleSdk = {
 
     webSocket: null,
-
     //本地video标签
     localVideo: null,
     //远端video标签
@@ -128,6 +129,7 @@ simpleSdk = {
 
     /**
      * 建立websocket连接
+     *
      * @param address 信令服务器地址
      * @returns {string}
      */
@@ -135,8 +137,8 @@ simpleSdk = {
         //正则校验 ws://
         const reg = new RegExp("^(ws|wss)://.*");
         if (!reg.test("ws://127.0.0.1")) {
-            console.log("只支持 ws & wss 协议");
-            return "error"
+            throw "只支持 ws & wss 协议"
+
         }
         simpleSdk.webSocket = new WebSocket(address);
 
@@ -165,63 +167,54 @@ simpleSdk = {
                 // case typeEnum.loginTimeout://登录超时
                 //     customEvent = simpleCustomEvents.loginTimeout;
                 //     break;
+                case receiveTypeEnum.busy://忙碌
+                    customEvent = simpleCustomEvents.busy;
+                    break;
                 case receiveTypeEnum.callSuccess://呼叫成功
                     customEvent = simpleCustomEvents.callSuccess;
                     //开始等待接受
                     simpleSdk.openWaitAccept();
-                    console.log(type + "   " + "呼叫成功");
                     break;
                 case receiveTypeEnum.called://被呼叫
                     customEvent = simpleCustomEvents.called;
                     console.log(type + "   " + "被呼叫");
                     break;
-                case receiveTypeEnum.notOnline:
+                case receiveTypeEnum.notOnline://不在线
                     customEvent = simpleCustomEvents.notOnline;
-                    console.log(type + "   " + "notOnline");
-
                     break;
                 case  receiveTypeEnum.accepted://已接受
                     //关闭等待接受
                     simpleSdk.clearWaitAccept();
                     //发送offer
                     simpleSdk.sendOffer();
-                    console.log(type + "   " + "已接受");
                     customEvent = simpleCustomEvents.accepted;
                     break;
                 case receiveTypeEnum.receiveOffer://接收offer
-                    //customEvent = simpleCustomEvents.receiveOffer;
-
-
                     let promise = pc.setRemoteDescription(new RTCSessionDescription(JSON.parse(data.msg)));
-                    // promise.then(() => {
-                    //
-                    // }).catch(() => {
-                    //     throw "setRemoteDescription receiveOffer error"
-                    // });
+                    promise.catch(() => {
+                        throw "setRemoteDescription receiveOffer error"
+                    });
                     //发送answer
-                    console.log(type + "   " + "接收offer");
                     simpleSdk.senAnswer();
                     break;
                 case receiveTypeEnum.receiveAnswer://接收answer
-                    //let dataMs = JSON.parse(data.msg);
                     pc.setRemoteDescription(new RTCSessionDescription(JSON.parse(data.msg)))
-                        .then(() => {
-
-                        }).catch(() => {
-                        throw "setRemoteDescription receiveAnswer error"
-                    });
-                    console.log(type + "   " + "接收answer");
-
+                        .catch(() => {
+                            throw "setRemoteDescription receiveAnswer error"
+                        });
                     break;
                 case receiveTypeEnum.receiveICE://接收ice
-                    pc.addIceCandidate(new RTCIceCandidate(data.msg))
-                        .then(() => {
+                    if(data.msg !== null){
+                        pc.addIceCandidate(new RTCIceCandidate(JSON.parse(data.msg)))
+                            .catch(() => {
+                                throw "receiveICE error"
+                            });
+                    }
 
-                        }).catch(() => {
-                        throw "receiveICE error"
-                    });
-                    console.log(type + "   " + "receiveICE");
-
+                    break;
+                case receiveTypeEnum.hangUp://对方挂断
+                    customEvent = simpleCustomEvents.hangUp;
+                    simpleSdk.hangUp();
                     break;
                 default:
                     customEvent = null;
@@ -234,12 +227,40 @@ simpleSdk = {
         }
     },
 
+    /**
+     * 挂断
+     */
+    hangUp: function () {
+        let dto = new DTO("", sendTypeEnum.hangUp);
+        simpleSdk.webSocket.send(JSON.stringify(dto));
+        //pc.removeTrack(sender);
+        simpleSdk.closeTracks();
+    },
+
+    closeTracks: function () {
+        if (localStream !== null) {
+            localStream.getTracks().forEach(track => track.stop());
+        }
+        localVideo.srcObject = null;
+        remoteVideo.srcObject = null;
+        pc = new PeerConnection(iceServer);
+        setPeerConnection(pc);
+        localStream = null;
+    },
+
+    /**
+     * 触发事件
+     *
+     * @param event
+     */
     triggerEvent: function triggerEvent(event) {
         window.dispatchEvent(event);
     },
 
+
     /**
      * 监听事件
+     *
      * @param eventName
      * @param callbackFunction
      */
@@ -251,6 +272,7 @@ simpleSdk = {
 
     /**
      * 登录
+     *
      * @param userName 用户名
      */
     login: function (userName) {
@@ -266,54 +288,39 @@ simpleSdk = {
 
     //摄像头开启状态 0关闭 1开启
     cameraStatus: 0,
+
     /**
      * 打开本地摄像头
+     *
      * @param constraints 视频信息约束(在上面)
      */
     openLocalCamera: function openLocalCamera(constraints) {
         constraints = constraints === undefined ? simpleSdk.constraints : constraints;
-        var promise = navigator.mediaDevices.getUserMedia(constraints);
+        let promise = navigator.mediaDevices.getUserMedia(constraints);
         promise.then((stream) => {
             localVideo.srcObject = stream;
             //修改摄像头状态
             simpleSdk.cameraStatus = 1;
+            localStream = stream;
             //向PeerConnection中加入视频流
             stream.getTracks().forEach(function (track) {
                 pc.addTrack(track, stream);
             });
         }).catch((err) => {
             console.log(err);
-            throw `openLocalCamera navigator.getUserMedia exception;\n case:${err.data}`;
+            throw `openLocalCamera navigator.getUserMedia error  case:${err}`;
         });
-
-        // navigator.mediaDevices.getUserMedia(constraints, function (stream) {
-        //     localVideo.srcObject = stream;
-        //     //修改摄像头状态
-        //     this.cameraStatus = 1;
-        //     //向PeerConnection中加入视频流
-        //     stream.getTracks().forEach(function (track) {
-        //         pc.addTrack(track, stream);
-        //     });
-        // }, function (err) {
-        //     console.log(err);
-        //     throw `openLocalCamera navigator.getUserMedia exception;\n case:${err.data}`;
-        // });
-
-        // navigator.mediaDevices.getUserMedia(constraints).then(function (stream) {
-        //     localVideo.srcObject = stream;
-        //     localStream = stream;
-        //     pc.addStream(stream);
-        // });
     },
 
 
-    //呼叫成功后 等待对方接听的时间
+    //呼叫成功后 等待对方接听的时间 默认10s
     timeout: 10000,
     //等待接受超时interval
     interval: null,
 
     /**
      * 呼叫用户
+     *
      * @param remoteUser 对方用户
      * @param timeout 超时时间
      */
@@ -321,7 +328,7 @@ simpleSdk = {
         let dto = new DTO(remoteUser, sendTypeEnum.call);
         //自动开启摄像头
         if (simpleSdk.cameraStatus === 0) {
-            // simpleSdk.openLocalCamera();
+            simpleSdk.openLocalCamera();
         }
         simpleSdk.webSocket.send(JSON.stringify(dto));
         if (timeout === undefined || timeout === null) {
@@ -340,7 +347,9 @@ simpleSdk = {
         }, simpleSdk.timeout);
     },
 
-    //清除等待接受
+    /**
+     * 清除等待接受
+     */
     clearWaitAccept: function () {
         clearInterval(simpleSdk.interval);
     },
@@ -351,6 +360,7 @@ simpleSdk = {
     accept: function () {
         let dto = new DTO("", sendTypeEnum.accept);
         simpleSdk.webSocket.send(JSON.stringify(dto));
+        simpleSdk.openLocalCamera();
     },
 
     /**
@@ -379,8 +389,8 @@ simpleSdk = {
                 //发送到远端
                 let dto = new DTO(answerInfo, sendTypeEnum.sendAnswer);
                 simpleSdk.webSocket.send(JSON.stringify(dto));
-            }).catch(() => {
-                throw `senAnswer ERROR`
+            }).catch((error) => {
+                throw `senAnswer ERROR cause ${error}`
             });
         });
     },
@@ -388,6 +398,7 @@ simpleSdk = {
 
     /**
      * 设置视频画面的标签
+     *
      * @param localVideoId 本地视频标签id
      * @param remoteVideoId 对方视频标签id
      */
@@ -401,4 +412,19 @@ simpleSdk = {
         simpleSdk.remoteVideo = remoteVideoEle;
     },
 };
+
+function setPeerConnection(pc) {
+    //监听ice信息
+    pc.onicecandidate = function (event) {
+        console.log("onicecandidate " + event);
+        if (!event || !event.candidate) return;
+        let dto = new DTO(event.candidate, sendTypeEnum.sendICE);
+        simpleSdk.webSocket.send(dto)
+    };
+    //监听远端流
+    pc.ontrack = function (event) {
+        console.log("收到远端流 " + event);
+        simpleSdk.remoteVideo.srcObject = event.streams[0];
+    };
+}
 

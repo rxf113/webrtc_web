@@ -7,7 +7,6 @@ import io.netty.channel.Channel;
  */
 public class UserInfo {
     private String userName;
-    private String channelId;
     private Channel channel;
     /**
      * //1 空闲 2忙碌
