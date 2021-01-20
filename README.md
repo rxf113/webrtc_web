@@ -9,3 +9,4 @@
 浏览器链接访问方式必须为 **https** ，https下 使用 websocket  要用 wss协议
 
 ice 服务器未搭建，  默认使用的谷歌提供的
+
