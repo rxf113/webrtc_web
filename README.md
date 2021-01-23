@@ -1,6 +1,6 @@
 ### 一个基于 webrtc + netty 的视频聊天demo
 
-运行springboot程序 ，访问 http://localhost:8092/video.html
+运行springboot程序 ，访问 https://localhost:8092/video.html
 
 **本地测试:**  在浏览器打开两个页面，分别登陆，输入对方用户名呼叫、接听，能看到效果
 
