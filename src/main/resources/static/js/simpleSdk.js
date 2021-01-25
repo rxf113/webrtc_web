@@ -426,7 +426,7 @@ function setPeerConnection(pc) {
         console.log("onicecandidate " + event);
         if (!event || !event.candidate) return;
         let dto = new DTO(event.candidate, sendTypeEnum.sendICE);
-        simpleSdk.webSocket.send(dto)
+        simpleSdk.webSocket.send(JSON.stringify(dto))
     };
     //监听远端流
     pc.ontrack = function (event) {
