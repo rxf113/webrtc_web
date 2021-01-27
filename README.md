@@ -1,4 +1,4 @@
-### 一个基于 webrtc + gorilla 的视频聊天demo
+### 一个基于 webrtc + gorilla 的视频聊天演示程序
 
 运行程序 **go run main.go** ，访问 http://localhost:9000/video.html
 
