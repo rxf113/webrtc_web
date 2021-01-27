@@ -1,6 +1,11 @@
 ### 一个基于 webrtc + netty 的视频聊天demo
 
-运行springboot程序 ，访问 http://localhost:9000/video.html
+运行程序：
+
+1. 直接启动start包下的Start类
+2.  进入项目目录， 命令行执行 mvn clean package 打包。完成后  java -jar target/xx.jar  启动
+
+ 启动成功后访问 http://localhost:9000/video.html
 
 **本地测试:**  在浏览器打开两个页面，分别登陆，输入对方用户名呼叫、接听，能看到效果
 
