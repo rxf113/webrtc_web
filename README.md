@@ -1,4 +1,4 @@
-### 一个基于 webrtc + netty 的视频聊天demo
+### 一个基于 webrtc + netty 的视频聊天演示程序
 
 运行程序：
 
