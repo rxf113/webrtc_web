@@ -15,7 +15,7 @@ func Start()  {
 	//websocket
 	http.HandleFunc("/ws", server.WebSocketHandle)
 	//静态页面
-	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("web/static"))))
+	http.Handle("/", http.StripPrefix("/", http.FileServer(http.Dir("web/static"))))
 	log.Fatal(http.ListenAndServe(*addr, nil))
 
 }
