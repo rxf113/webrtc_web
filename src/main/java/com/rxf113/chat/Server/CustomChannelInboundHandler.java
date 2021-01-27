@@ -3,9 +3,13 @@ package com.rxf113.chat.Server;
 import com.alibaba.fastjson.JSONObject;
 import com.rxf113.chat.enums.ReceiveTypeEnum;
 import com.rxf113.chat.enums.SendTypeEnum;
+import com.rxf113.chat.utils.StaticFileUtil;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 
 import java.text.SimpleDateFormat;
@@ -20,7 +24,7 @@ import java.util.Map;
 /**
  *
  */
-class CustomChannelInboundHandler extends SimpleChannelInboundHandler<TextWebSocketFrame> {
+class CustomChannelInboundHandler extends SimpleChannelInboundHandler<Object> {
 
     //name - userInfo
     private static Map<String, UserInfo> nameInfoMap = new HashMap<>();
@@ -147,43 +151,71 @@ class CustomChannelInboundHandler extends SimpleChannelInboundHandler<TextWebSoc
 
     @Override
     @SuppressWarnings("rawtypes")
-    protected void channelRead0(ChannelHandlerContext handlerContext, TextWebSocketFrame o) throws Exception {
-        Map map = JSONObject.parseObject(o.text(), Map.class);
-        Channel channel = handlerContext.channel();
-        DTO customData = JSONObject.parseObject(map.get("data").toString(), DTO.class);
-        String msg = customData.getMsg();
-        Integer type = customData.getType();
-        ReceiveTypeEnum receiveTypeEnum = ReceiveTypeEnum.getReceiveTypeEnum(type);
-        //应答数据
-        DTO returnData = new DTO();
-        switch (receiveTypeEnum) {
-            case login://呼叫
-                login(msg, channel, returnData);
-                break;
-            case sendOffer:
-            case sendAnswer:
-                offerAnswer(receiveTypeEnum, channel, msg);
-                break;
-            case call:
-                call(msg, channel, returnData);
-                break;
-            case accept:
-                accept(customData, channel);
-                break;
-//            case 拒绝:
-//                refuse(channel);
-//                break;
-            case hangUp:
-                hangUp(channel);
-                break;
-            case sendICE:
-                customData.setType(SendTypeEnum.receiveICE.getValue());
-                Channel remoteChannel = getRemoteChannel(channel);
-                remoteChannel.writeAndFlush(new TextWebSocketFrame(JSONObject.toJSONString(customData)));
-                break;
-            default:
-        }
-        channel.writeAndFlush(new TextWebSocketFrame(JSONObject.toJSONString(returnData)));
+    protected void channelRead0(ChannelHandlerContext handlerContext, Object obj) throws Exception {
+         if(obj instanceof FullHttpRequest){
+            //http 只处理静态文件
+            HttpResponseStatus httpResponseStatus = HttpResponseStatus.OK;
+            FullHttpRequest httpRequest = (FullHttpRequest) obj;
+            String uri = httpRequest.uri();
+            byte[] fileBytes = new byte[0];
+            if(uri != null && !"/".equals(uri.trim())){
+                try {
+                    int i = uri.lastIndexOf("/");
+                    fileBytes = StaticFileUtil.getFileBytes(uri.substring(i + 1));
+                }catch (Exception e){
+                    fileBytes = new byte[0];
+                    httpResponseStatus = HttpResponseStatus.NOT_FOUND;
+                }
+            }
+            // 1.设置响应
+            FullHttpResponse resp = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, httpResponseStatus,
+                    Unpooled.copiedBuffer(fileBytes));
+
+            resp.headers().set(HttpHeaderNames.CONTENT_TYPE, "text/html; charset=UTF-8");
+
+            //响应
+            handlerContext.writeAndFlush(resp).addListener(ChannelFutureListener.CLOSE);
+        }else //websocket
+             if(obj instanceof TextWebSocketFrame){
+                 TextWebSocketFrame o = (TextWebSocketFrame) obj;
+                 Map map = JSONObject.parseObject(o.text(), Map.class);
+                 Channel channel = handlerContext.channel();
+                 DTO customData = JSONObject.parseObject(map.get("data").toString(), DTO.class);
+                 String msg = customData.getMsg();
+                 Integer type = customData.getType();
+                 ReceiveTypeEnum receiveTypeEnum = ReceiveTypeEnum.getReceiveTypeEnum(type);
+                 //应答数据
+                 DTO returnData = new DTO();
+                 switch (receiveTypeEnum) {
+                     case login:
+                         login(msg, channel, returnData);
+                         break;
+                     case sendOffer:
+                     case sendAnswer:
+                         offerAnswer(receiveTypeEnum, channel, msg);
+                         break;
+                     case call:
+                         call(msg, channel, returnData);
+                         break;
+                     case accept:
+                         accept(customData, channel);
+                         break;
+                     // case 拒绝:
+                     // refuse(channel);
+                     // break;
+                     case hangUp:
+                         hangUp(channel);
+                         break;
+                     case sendICE:
+                         customData.setType(SendTypeEnum.receiveICE.getValue());
+                         Channel remoteChannel = getRemoteChannel(channel);
+                         remoteChannel.writeAndFlush(new TextWebSocketFrame(JSONObject.toJSONString(customData)));
+                         break;
+                     default:
+                 }
+                 channel.writeAndFlush(new TextWebSocketFrame(JSONObject.toJSONString(returnData)));
+             }
+
     }
 
     /**
@@ -258,11 +290,6 @@ class CustomChannelInboundHandler extends SimpleChannelInboundHandler<TextWebSoc
 
     @Override
     public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
-
-        System.out.println("客户端断开，channle对应的长id为："
-                + ctx.channel().id().asLongText());
-        System.out.println("客户端断开，channle对应的短id为："
-                + ctx.channel().id().asShortText());
         Channel channel = ctx.channel();
         String name = channelNameMap.get(channel);
         channelNameMap.remove(channel);

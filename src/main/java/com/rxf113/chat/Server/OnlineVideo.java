@@ -15,8 +15,7 @@ public class OnlineVideo {
     /**
      * 自定义ChannelInitializer
      */
-    public void init(Integer port) {
-        port = port == null ? 9000 : port;
+    public void init(int port) {
         ServerBootstrap serverBootstrap = new ServerBootstrap();
         NioEventLoopGroup boos = new NioEventLoopGroup();
         NioEventLoopGroup worker = new NioEventLoopGroup();

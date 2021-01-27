@@ -13,6 +13,7 @@ class CustomChannelInitializer extends ChannelInitializer<SocketChannel> {
         socketChannel.pipeline().addLast(new HttpServerCodec());
         socketChannel.pipeline().addLast(new ChunkedWriteHandler());
         socketChannel.pipeline().addLast(new HttpObjectAggregator(1024 * 64));
+
         socketChannel.pipeline().addLast(new WebSocketServerProtocolHandler("/ws"));
         socketChannel.pipeline().addLast(new CustomChannelInboundHandler());
     }

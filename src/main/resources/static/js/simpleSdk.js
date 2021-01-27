@@ -195,7 +195,11 @@ simpleSdk = {
                         throw "setRemoteDescription receiveOffer error"
                     });
                     //发送answer
-                    simpleSdk.senAnswer();
+                    //延迟两秒(延迟时间大于接听时间)
+                    setTimeout(function () {
+                        simpleSdk.senAnswer();
+                    },1000);
+
                     break;
                 case receiveTypeEnum.receiveAnswer://接收answer
                     pc.setRemoteDescription(new RTCSessionDescription(JSON.parse(data.msg)))
