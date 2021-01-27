@@ -20,10 +20,6 @@ import java.util.Map;
 /**
  * 入站处理
  */
-
-/**
- *
- */
 class CustomChannelInboundHandler extends SimpleChannelInboundHandler<Object> {
 
     //name - userInfo
@@ -75,7 +71,6 @@ class CustomChannelInboundHandler extends SimpleChannelInboundHandler<Object> {
             if (answerUserInfo.getStatus() == 1) {
                 DTO data = new DTO();
                 Channel answerUserInfoChannel = answerUserInfo.getChannel();
-                Map<String, Object> dataMap = new HashMap<>(1);
                 data.setType(SendTypeEnum.called.getValue());
                 data.setMsg(channelNameMap.get(channel));
                 //通知被叫
@@ -152,17 +147,17 @@ class CustomChannelInboundHandler extends SimpleChannelInboundHandler<Object> {
     @Override
     @SuppressWarnings("rawtypes")
     protected void channelRead0(ChannelHandlerContext handlerContext, Object obj) throws Exception {
-         if(obj instanceof FullHttpRequest){
+        if (obj instanceof FullHttpRequest) {
             //http 只处理静态文件
             HttpResponseStatus httpResponseStatus = HttpResponseStatus.OK;
             FullHttpRequest httpRequest = (FullHttpRequest) obj;
             String uri = httpRequest.uri();
             byte[] fileBytes = new byte[0];
-            if(uri != null && !"/".equals(uri.trim())){
+            if (uri != null && !"/".equals(uri.trim())) {
                 try {
                     int i = uri.lastIndexOf("/");
                     fileBytes = StaticFileUtil.getFileBytes(uri.substring(i + 1));
-                }catch (Exception e){
+                } catch (Exception e) {
                     fileBytes = new byte[0];
                     httpResponseStatus = HttpResponseStatus.NOT_FOUND;
                 }
@@ -175,46 +170,46 @@ class CustomChannelInboundHandler extends SimpleChannelInboundHandler<Object> {
 
             //响应
             handlerContext.writeAndFlush(resp).addListener(ChannelFutureListener.CLOSE);
-        }else //websocket
-             if(obj instanceof TextWebSocketFrame){
-                 TextWebSocketFrame o = (TextWebSocketFrame) obj;
-                 Map map = JSONObject.parseObject(o.text(), Map.class);
-                 Channel channel = handlerContext.channel();
-                 DTO customData = JSONObject.parseObject(map.get("data").toString(), DTO.class);
-                 String msg = customData.getMsg();
-                 Integer type = customData.getType();
-                 ReceiveTypeEnum receiveTypeEnum = ReceiveTypeEnum.getReceiveTypeEnum(type);
-                 //应答数据
-                 DTO returnData = new DTO();
-                 switch (receiveTypeEnum) {
-                     case login:
-                         login(msg, channel, returnData);
-                         break;
-                     case sendOffer:
-                     case sendAnswer:
-                         offerAnswer(receiveTypeEnum, channel, msg);
-                         break;
-                     case call:
-                         call(msg, channel, returnData);
-                         break;
-                     case accept:
-                         accept(customData, channel);
-                         break;
-                     // case 拒绝:
-                     // refuse(channel);
-                     // break;
-                     case hangUp:
-                         hangUp(channel);
-                         break;
-                     case sendICE:
-                         customData.setType(SendTypeEnum.receiveICE.getValue());
-                         Channel remoteChannel = getRemoteChannel(channel);
-                         remoteChannel.writeAndFlush(new TextWebSocketFrame(JSONObject.toJSONString(customData)));
-                         break;
-                     default:
-                 }
-                 channel.writeAndFlush(new TextWebSocketFrame(JSONObject.toJSONString(returnData)));
-             }
+        } else //websocket
+            if (obj instanceof TextWebSocketFrame) {
+                TextWebSocketFrame o = (TextWebSocketFrame) obj;
+                Map map = JSONObject.parseObject(o.text(), Map.class);
+                Channel channel = handlerContext.channel();
+                DTO customData = JSONObject.parseObject(map.get("data").toString(), DTO.class);
+                String msg = customData.getMsg();
+                Integer type = customData.getType();
+                ReceiveTypeEnum receiveTypeEnum = ReceiveTypeEnum.getReceiveTypeEnum(type);
+                //应答数据
+                DTO returnData = new DTO();
+                switch (receiveTypeEnum) {
+                    case login:
+                        login(msg, channel, returnData);
+                        break;
+                    case sendOffer:
+                    case sendAnswer:
+                        offerAnswer(receiveTypeEnum, channel, msg);
+                        break;
+                    case call:
+                        call(msg, channel, returnData);
+                        break;
+                    case accept:
+                        accept(customData, channel);
+                        break;
+                    // case 拒绝:
+                    // refuse(channel);
+                    // break;
+                    case hangUp:
+                        hangUp(channel);
+                        break;
+                    case sendICE:
+                        customData.setType(SendTypeEnum.receiveICE.getValue());
+                        Channel remoteChannel = getRemoteChannel(channel);
+                        remoteChannel.writeAndFlush(new TextWebSocketFrame(JSONObject.toJSONString(customData)));
+                        break;
+                    default:
+                }
+                channel.writeAndFlush(new TextWebSocketFrame(JSONObject.toJSONString(returnData)));
+            }
 
     }
 

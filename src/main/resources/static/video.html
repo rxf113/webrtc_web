@@ -115,6 +115,11 @@
         clearContent("userInput");
     });
 
+    simpleSdk.on('login-fail', function (e) {
+        console.log(e);
+        alert('登录失败' + e.data.msg);
+    });
+
     //监听 呼叫成功
     simpleSdk.on('call-success', function (e) {
         console.log(e);
