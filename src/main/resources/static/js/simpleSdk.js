@@ -136,7 +136,7 @@ simpleSdk = {
     openWebSocketConnection: function (address) {
         //正则校验 ws://
         const reg = new RegExp("^(ws|wss)://.*");
-        if (!reg.test("ws://127.0.0.1")) {
+        if (!reg.test(address)) {
             throw "只支持 ws & wss 协议"
 
         }
