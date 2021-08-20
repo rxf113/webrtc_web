@@ -9,8 +9,12 @@
 
 ### 端口切换问题
 程序默认使用9000端口，若9000被占需要切换，请按如下步骤修改
+
 1.修改start包下的Start类的 serverPort
-2.修改resources目录下static目录下的video.html 65行的simpleSdk.openWebSocketConnection("ws://127.0.0.1:8990/ws");保持端口一致
+
+2.修改resources目录下static目录下的video.html 
+
+65行的simpleSdk.openWebSocketConnection("ws://127.0.0.1:8990/ws");保持端口一致
 
 **本地测试:**  在浏览器打开两个页面，分别登陆，输入对方用户名呼叫、接听，能看到效果
 
