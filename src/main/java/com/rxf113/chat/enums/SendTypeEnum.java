@@ -16,7 +16,8 @@ public enum SendTypeEnum {
     receiveOffer(8),
     receiveAnswer(9),
     receiveICE(10),
-    hangUp(11);
+    hangUp(11),
+    heartBeat(999);
 
     private int value = 0;
 

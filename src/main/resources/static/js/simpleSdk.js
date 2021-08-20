@@ -85,7 +85,9 @@ sendTypeEnum = {
     //发送ice
     sendICE: 8,
     //挂断
-    hangUp: 9
+    hangUp: 9,
+    //心跳
+    heartBeat: 999
 };
 
 /**
@@ -113,7 +115,9 @@ receiveTypeEnum = {
     //接收ice
     receiveICE: 10,
     //挂断
-    hangUp: 11
+    hangUp: 11,
+    //心跳
+    heartBeat: 999
 };
 
 /**
@@ -126,6 +130,34 @@ simpleSdk = {
     localVideo: null,
     //远端video标签
     remoteVideo: null,
+
+    //心跳检测
+    heartbeat: {
+        sendMsgTimeout: 20000,
+        receiveMsgTimeout: 5000,
+        sendMsgTimeoutObj: null,
+        receiveServerHeartTimeoutObj: null,
+
+        resetTimeOut: function () {
+            if (this.sendMsgTimeoutObj) {
+                clearTimeout(this.sendMsgTimeoutObj)
+            }
+            if (this.receiveServerHeartTimeoutObj) {
+                clearTimeout(this.receiveServerHeartTimeoutObj)
+            }
+            let _this = this;
+            this.sendMsgTimeoutObj = setTimeout(function () {
+                let dto = new DTO("", sendTypeEnum.heartBeat);
+                simpleSdk.webSocket.send(JSON.stringify(dto));
+                console.log("send heart beat .....");
+                //没收到服务端响应 关闭
+                _this.receiveServerHeartTimeoutObj = setTimeout(function () {
+                    console.log(`${_this.receiveMsgTimeout / 1000} 秒内未接收到消息，断开连接!!!`);
+                    simpleSdk.webSocket.close();
+                }, _this.receiveMsgTimeout)
+            }, _this.sendMsgTimeout)
+        }
+    },
 
     /**
      * 建立websocket连接
@@ -144,6 +176,8 @@ simpleSdk = {
 
         simpleSdk.webSocket.onopen = function () {
             console.log("webSocket连接建立成功... " + "服务端address: " + address);
+            //心跳计时开始
+            simpleSdk.heartbeat.resetTimeOut();
         };
         simpleSdk.webSocket.onclose = function () {
             console.log("webSocket连接关闭...");
@@ -153,11 +187,17 @@ simpleSdk = {
         };
         //监听webSocket消息
         simpleSdk.webSocket.onmessage = function (event) {
+
+            simpleSdk.heartbeat.resetTimeOut();
             let data = JSON.parse(event.data);
             let type = data.type;
             //根据type触发对应的事件
             let customEvent = null;
             switch (type) {
+                case receiveTypeEnum.heartBeat:
+                    //心跳响应
+                    console.log("receive heart beat ...");
+                    break;
                 case receiveTypeEnum.loginSuccess://登录成功
                     customEvent = simpleCustomEvents.loginSuccess;
                     break;

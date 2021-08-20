@@ -2,10 +2,19 @@
 
 运行程序：
 
-1. 直接启动start包下的Start类
-2.  进入项目目录， 命令行执行 mvn clean package 打包。完成后  java -jar target/xx.jar  启动
+方式一. 直接启动start包下的Start类
+方式二.  进入项目目录， 命令行执行 mvn clean package 打包。完成后  java -jar target/xx.jar  启动
 
  启动成功后访问 http://localhost:9000/video.html
+
+### 端口切换问题
+程序默认使用9000端口，若9000被占需要切换，请按如下步骤修改
+
+1.修改start包下的Start类的 serverPort
+
+2.修改resources目录下static目录下的video.html 
+
+65行的simpleSdk.openWebSocketConnection("ws://127.0.0.1:8990/ws");保持端口一致
 
 **本地测试:**  在浏览器打开两个页面，分别登陆，输入对方用户名呼叫、接听，能看到效果
 
