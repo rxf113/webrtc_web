@@ -29,6 +29,13 @@ class CustomChannelInboundHandler extends SimpleChannelInboundHandler<Object> {
 
     private static Map<Channel, RoomInfo> channelRooms = new HashMap<>();
 
+    static DTO heartBeatData = new DTO();
+
+    static {
+        heartBeatData.setType(SendTypeEnum.heartBeat.getValue());
+    }
+
+
     /**
      * 登录
      *
@@ -182,6 +189,10 @@ class CustomChannelInboundHandler extends SimpleChannelInboundHandler<Object> {
                 //应答数据
                 DTO returnData = new DTO();
                 switch (receiveTypeEnum) {
+                    case heartBeat:
+                        System.out.println("receive hear beat ...");
+                        channel.writeAndFlush(new TextWebSocketFrame(JSONObject.toJSONString(heartBeatData)));
+                        break;
                     case login:
                         login(msg, channel, returnData);
                         break;
@@ -208,7 +219,9 @@ class CustomChannelInboundHandler extends SimpleChannelInboundHandler<Object> {
                         break;
                     default:
                 }
-                channel.writeAndFlush(new TextWebSocketFrame(JSONObject.toJSONString(returnData)));
+                if(returnData.getType() != null || returnData.getMsg() != null){
+                    channel.writeAndFlush(new TextWebSocketFrame(JSONObject.toJSONString(returnData)));
+                }
             }
 
     }
