@@ -130,6 +130,7 @@
     simpleSdk.on('called', function (e) {
         console.log(e);
         let caller = e.data.msg;
+        window.focus()
         let r = confirm(`收到来自 [${caller}] 的视频通话邀请!`);
         if (r) {
             //接收
