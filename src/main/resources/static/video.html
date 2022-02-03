@@ -41,7 +41,7 @@
 
         <div class="level-item" style="margin-left: -260px;margin-top: 20px">
             <input id="remoteUserInput" class="input" type="text" placeholder="输入对方用户名" style="width: 20%">
-            <button class="button is-info" disabled id="callButton">呼叫</button>
+            <button class="button is-info"  id="callButton">呼叫</button>
         </div>
 
         <div id="hangup" class="level-item" style="margin-left: 60px;margin-top: 20px">
@@ -92,11 +92,11 @@
     });
 
     function clearElement() {
-        clearContent("userInput");
+        // clearContent("userInput");
         clearContent("remoteUserInput");
-        displayButton("loginButton");
-        disabledButton("callButton");
-        clearContent("userName");
+        // displayButton("loginButton");
+        //disabledButton("callButton");
+        // clearContent("userName");
         clearContent("remoteUserName");
     }
 
@@ -107,7 +107,7 @@
     //监听 登录成功
     simpleSdk.on('login-success', function (e) {
         console.log(e);
-        alert("登陆成功");
+        //alert("登陆成功");
         disabledButton("loginButton");
         displayButton("callButton");
         let userName = document.getElementById("userInput").value
@@ -136,8 +136,8 @@
         setTimeout(() => {
             simpleSdk.accept();
             displayUserName("remoteUserName", caller);
-            disabledButton("callButton");
-        }, 5000);
+            //disabledButton("callButton");
+        }, 3000);
         // } else {
         //     //simpleSdk.refuse();
         // }
@@ -146,7 +146,7 @@
     //监听 对方已接受
     simpleSdk.on('accepted', function () {
         console.log("对方接受");
-        disabledButton("callButton");
+        //disabledButton("callButton");
         displayUserName("remoteUserName",document.getElementById("remoteUserInput").value);
         clearContent("remoteUserInput");
         //alert('对方接受' + e.data.msg);
