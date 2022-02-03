@@ -1,37 +1,13 @@
 //创建PeerConnection实例
-const PeerConnection = (window.PeerConnection ||
-    window.webkitPeerConnection00 ||
-    window.webkitRTCPeerConnection ||
-    window.mozRTCPeerConnection);
+const PeerConnection = window.RTCPeerConnection || window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
+
 if (!PeerConnection) {
     throw "浏览器不支持webrtc功能"
 }
-//let testRTCPeerConnection = window.RTCPeerConnection ||
-//         window.webkitRTCPeerConnection ||
-//         window.mozRTCPeerConnection ||
-//         window.RTCIceGatherer;
-
-//let serverConfig = {
-//             "iceServers": [{
-//                 urls: [
-//                     "stun:stun.l.google.com:19302",
-//                     "stun:stun1.l.google.com:19302",
-//                     "stun:stun2.l.google.com:19302",
-//                     "stun:stun.l.google.com:19302?transport=udp"
-//                 ]
-//             }]
-//         };
-//new RTCPeerConnection(serverConfig);
-const iceServer = {
-    "iceServers": [{
-        "urls": "stun:stun.l.google.com:19302"
-    }]
-};
 //创建PeerConnection实例
-let pc = new RTCPeerConnection(iceServer);
-let sender = null;
-let localStream = null;
-setPeerConnection(pc);
+let pc = new RTCPeerConnection();
+peerConnectionListen(pc);
+
 
 //自定义的事件 收到webSocket消息后根据type类型触发
 simpleCustomEvents = {
@@ -124,7 +100,7 @@ receiveTypeEnum = {
  * sdk
  */
 simpleSdk = {
-
+    localStream: null,
     webSocket: null,
     //本地video标签
     localVideo: null,
@@ -133,7 +109,7 @@ simpleSdk = {
 
     //心跳检测
     heartbeat: {
-        sendMsgTimeout: 20000,
+        sendMsgTimeout: 50000,
         receiveMsgTimeout: 5000,
         sendMsgTimeoutObj: null,
         receiveServerHeartTimeoutObj: null,
@@ -238,7 +214,7 @@ simpleSdk = {
                     //延迟两秒(延迟时间大于接听时间)
                     setTimeout(function () {
                         simpleSdk.senAnswer();
-                    },1000);
+                    }, 1000);
 
                     break;
                 case receiveTypeEnum.receiveAnswer://接收answer
@@ -248,7 +224,7 @@ simpleSdk = {
                         });
                     break;
                 case receiveTypeEnum.receiveICE://接收ice
-                    if(data.msg !== null){
+                    if (data.msg !== null) {
                         pc.addIceCandidate(new RTCIceCandidate(JSON.parse(data.msg)))
                             .catch(() => {
                                 throw "receiveICE error"
@@ -279,6 +255,7 @@ simpleSdk = {
         simpleSdk.webSocket.send(JSON.stringify(dto));
         //pc.removeTrack(sender);
         simpleSdk.closeTracks();
+        simpleSdk.cameraStatus = 0;//todo
     },
 
     hangUpLocal: function () {
@@ -286,17 +263,18 @@ simpleSdk = {
         //simpleSdk.webSocket.send(JSON.stringify(dto));
         //pc.removeTrack(sender);
         simpleSdk.closeTracks();
+        simpleSdk.cameraStatus = 0;//todo
     },
 
     closeTracks: function () {
-        if (localStream !== null) {
-            localStream.getTracks().forEach(track => track.stop());
+        if (simpleSdk.localStream !== null) {
+            simpleSdk.localStream.getTracks().forEach(track => track.stop());
         }
-        localVideo.srcObject = null;
-        remoteVideo.srcObject = null;
-        pc = new PeerConnection(iceServer);
-        setPeerConnection(pc);
-        localStream = null;
+        simpleSdk.localVideo.srcObject = null;
+        simpleSdk.remoteVideo.srcObject = null;
+        pc = new PeerConnection();
+        peerConnectionListen(pc);
+        simpleSdk.localStream = null;
     },
 
     /**
@@ -349,10 +327,10 @@ simpleSdk = {
         constraints = constraints === undefined ? simpleSdk.constraints : constraints;
         let promise = navigator.mediaDevices.getUserMedia(constraints);
         promise.then((stream) => {
-            localVideo.srcObject = stream;
+            simpleSdk.localVideo.srcObject = stream;
             //修改摄像头状态
             simpleSdk.cameraStatus = 1;
-            localStream = stream;
+            simpleSdk.localStream = stream;
             //向PeerConnection中加入视频流
             stream.getTracks().forEach(function (track) {
                 pc.addTrack(track, stream);
@@ -464,7 +442,7 @@ simpleSdk = {
     },
 };
 
-function setPeerConnection(pc) {
+function peerConnectionListen(pc) {
     //监听ice信息
     pc.onicecandidate = function (event) {
         console.log("onicecandidate " + event);
