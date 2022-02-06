@@ -26,3 +26,4 @@ ice 服务器未搭建，  默认使用的谷歌提供的
 
 ---
 2022-01-21: 准备更新
+- 更新前端聊天界面: [webrtc_web_frontend 项目](https://github.com/rxf113/webrtc_web_frontend)
