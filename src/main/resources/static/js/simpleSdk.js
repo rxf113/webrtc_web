@@ -4,8 +4,15 @@ const PeerConnection = window.RTCPeerConnection || window.mozRTCPeerConnection |
 if (!PeerConnection) {
     throw "浏览器不支持webrtc功能"
 }
+
+const iceServer = {
+    "iceServers": [{
+        "urls": "stun:stun.l.google.com:19302"
+    }]
+};
+
 //创建PeerConnection实例
-let pc = new RTCPeerConnection();
+let pc = new RTCPeerConnection(iceServer);
 peerConnectionListen(pc);
 
 
@@ -300,6 +307,20 @@ simpleSdk = {
     },
 
     /**
+     * 监听事件
+     *
+     * @param eventNames
+     * @param callbackFunction
+     */
+    onMulti: function (eventNames, callbackFunction) {
+        for (let eventName of eventNames) {
+            window.addEventListener(eventName, function (event) {
+                callbackFunction(event);
+            });
+        }
+    },
+
+    /**
      * 登录
      *
      * @param userName 用户名
@@ -371,7 +392,7 @@ simpleSdk = {
     openWaitAccept: function () {
         simpleSdk.interval = setInterval(function () {
             //simpleSdk.webSocket.hangUpAll();
-            alert("超时未接听");
+            // alert("超时未接听");
             simpleSdk.clearWaitAccept();
         }, simpleSdk.timeout);
     },
