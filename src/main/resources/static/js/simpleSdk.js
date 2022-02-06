@@ -4,8 +4,15 @@ const PeerConnection = window.RTCPeerConnection || window.mozRTCPeerConnection |
 if (!PeerConnection) {
     throw "浏览器不支持webrtc功能"
 }
+
+const iceServer = {
+    "iceServers": [{
+        "urls": "stun:stun.l.google.com:19302"
+    }]
+};
+
 //创建PeerConnection实例
-let pc = new RTCPeerConnection();
+let pc = new RTCPeerConnection(iceServer);
 peerConnectionListen(pc);
 
 
