@@ -18,6 +18,7 @@ public class StaticFileUtil {
     private static final Map<String, byte[]> STATIC_FILE_CACHE = new HashMap<>(4, 1f);
 
     public static byte[] getFileBytes(String fileName) throws Exception {
+        //todo 支持新页面
         String fileType = fileName.substring(fileName.lastIndexOf("."));
         byte[] bytes = new byte[0];
         switch (fileType) {
