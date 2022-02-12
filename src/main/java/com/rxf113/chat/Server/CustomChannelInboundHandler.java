@@ -159,22 +159,20 @@ class CustomChannelInboundHandler extends SimpleChannelInboundHandler<Object> {
             HttpResponseStatus httpResponseStatus = HttpResponseStatus.OK;
             FullHttpRequest httpRequest = (FullHttpRequest) obj;
             String uri = httpRequest.uri();
-            byte[] fileBytes = new byte[0];
-            if (uri != null && !"/".equals(uri.trim())) {
-                try {
-                    int i = uri.lastIndexOf("/");
-                    fileBytes = StaticFileUtil.getFileBytes(uri.substring(i + 1));
-                } catch (Exception e) {
-                    fileBytes = new byte[0];
-                    httpResponseStatus = HttpResponseStatus.NOT_FOUND;
-                }
+            byte[] fileBytes;
+            if ("/".equals(uri.trim())) {
+                uri = "/index.html";
             }
+            try {
+                fileBytes = StaticFileUtil.getFileBytes(uri);
+            } catch (Exception e) {
+                fileBytes = new byte[0];
+                httpResponseStatus = HttpResponseStatus.NOT_FOUND;
+            }
+
             // 1.设置响应
             FullHttpResponse resp = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, httpResponseStatus,
                     Unpooled.copiedBuffer(fileBytes));
-
-            resp.headers().set(HttpHeaderNames.CONTENT_TYPE, "text/html; charset=UTF-8");
-
             //响应
             handlerContext.writeAndFlush(resp).addListener(ChannelFutureListener.CLOSE);
         } else //websocket
@@ -219,7 +217,7 @@ class CustomChannelInboundHandler extends SimpleChannelInboundHandler<Object> {
                         break;
                     default:
                 }
-                if(returnData.getType() != null || returnData.getMsg() != null){
+                if (returnData.getType() != null || returnData.getMsg() != null) {
                     channel.writeAndFlush(new TextWebSocketFrame(JSONObject.toJSONString(returnData)));
                 }
             }

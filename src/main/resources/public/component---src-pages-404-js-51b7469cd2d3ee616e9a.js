@@ -1,0 +1,2 @@
+"use strict";(self.webpackChunkgatsby_starter_hello_world=self.webpackChunkgatsby_starter_hello_world||[]).push([[883],{429:function(e,t,l){l.r(t);var r=l(294);t.default=function(){return r.createElement("div",null,"Page Not Fount，页面不存在!",r.createElement("div",null,r.createElement("br",null),"滚滚长江东逝水，浪花淘尽英雄。 是非成败转头空。 青山依旧在，几度夕阳红。 白发渔樵江渚上，惯看秋月春风。 一壶浊酒喜相逢。 古今多少事，都付笑谈中。"))}}}]);
+//# sourceMappingURL=component---src-pages-404-js-51b7469cd2d3ee616e9a.js.map

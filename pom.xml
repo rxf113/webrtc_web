@@ -68,8 +68,7 @@
             <resource>
                 <directory>src/main/resources</directory>
                 <includes>
-                    <include>**/*.js</include>
-                    <include>**/*.html</include>
+                    <include>**/**</include>
                 </includes>
             </resource>
         </resources>
