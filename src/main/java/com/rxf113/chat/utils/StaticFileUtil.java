@@ -11,34 +11,15 @@ import java.util.Objects;
  */
 public class StaticFileUtil {
 
-    private static final String RELATIVE_HTML_PATH = "static/";
+    private StaticFileUtil() {
+    }
 
-    private static final String RELATIVE_JS_PATH = "static/js/";
+    private static final String PAGE_BASE_DIR = "public";
 
     private static final Map<String, byte[]> STATIC_FILE_CACHE = new HashMap<>(4, 1f);
 
     public static byte[] getFileBytes(String fileName) throws Exception {
-        //todo 支持新页面
-        String fileType = fileName.substring(fileName.lastIndexOf("."));
-        byte[] bytes = new byte[0];
-        switch (fileType) {
-            case ".html":
-                bytes = getHtmlBytes(fileName);
-                break;
-            case ".js":
-                bytes = getJsBytes(fileName);
-                break;
-            default:
-        }
-        return bytes;
-    }
-
-    public static byte[] getHtmlBytes(String fileName) throws Exception {
-        return getFileBytes(fileName, RELATIVE_HTML_PATH);
-    }
-
-    public static byte[] getJsBytes(String fileName) throws Exception {
-        return getFileBytes(fileName, RELATIVE_JS_PATH);
+        return getFileBytes(fileName, PAGE_BASE_DIR);
     }
 
     private static byte[] getFileBytes(String fileName, String relativePath) throws Exception {
