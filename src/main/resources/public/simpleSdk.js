@@ -17,7 +17,9 @@ peerConnectionListen(pc);
 
 
 //自定义的事件 收到webSocket消息后根据type类型触发
-simpleCustomEvents = {
+let simpleCustomEvents = {
+    connectionServerSuccess: new CustomEvent('connection-server-success'),
+    connectionServerFail: new CustomEvent('connection-server-fail'),
     loginSuccess: new CustomEvent('login-success'),
     loginFail: new CustomEvent('login-fail'),
     loginTimeout: new CustomEvent('login-timeout'),
@@ -52,7 +54,7 @@ class DTO {
 /**
  * 发送方的业务类型枚举
  */
-sendTypeEnum = {
+let sendTypeEnum = {
     //登录
     login: 1,
     //接受呼叫
@@ -76,7 +78,7 @@ sendTypeEnum = {
 /**
  * 接收方的业务类型枚举
  */
-receiveTypeEnum = {
+let receiveTypeEnum = {
     //登录成功
     loginSuccess: 1,
     //登陆失败
@@ -106,7 +108,7 @@ receiveTypeEnum = {
 /**
  * sdk
  */
-simpleSdk = {
+let simpleSdk = {
     localStream: null,
     webSocket: null,
     //本地video标签
@@ -156,17 +158,23 @@ simpleSdk = {
 
         }
         simpleSdk.webSocket = new WebSocket(address);
-
+        setTimeout(() => {
+            return "1"
+        })
         simpleSdk.webSocket.onopen = function () {
             console.log("webSocket连接建立成功... " + "服务端address: " + address);
-            //心跳计时开始
-            simpleSdk.heartbeat.resetTimeOut();
+            setTimeout(() => {
+                //心跳计时开始
+                simpleSdk.heartbeat.resetTimeOut();
+            })
+            simpleSdk.triggerEvent(simpleCustomEvents.connectionServerSuccess);
         };
         simpleSdk.webSocket.onclose = function () {
             console.log("webSocket连接关闭...");
         };
         simpleSdk.webSocket.onerror = function (error) {
             console.log("webSocket发生错误..." + error.data);
+            simpleSdk.triggerEvent(simpleCustomEvents.connectionServerFail);
         };
         //监听webSocket消息
         simpleSdk.webSocket.onmessage = function (event) {
@@ -392,7 +400,7 @@ simpleSdk = {
     openWaitAccept: function () {
         simpleSdk.interval = setInterval(function () {
             //simpleSdk.webSocket.hangUpAll();
-            // alert("超时未接听");
+            //alert("超时未接听");
             simpleSdk.clearWaitAccept();
         }, simpleSdk.timeout);
     },
@@ -477,4 +485,3 @@ function peerConnectionListen(pc) {
         simpleSdk.remoteVideo.srcObject = event.streams[0];
     };
 }
-
