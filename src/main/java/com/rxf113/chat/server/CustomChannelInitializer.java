@@ -1,6 +1,8 @@
-package com.rxf113.chat.Server;
+package com.rxf113.chat.server;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.rxf113.chat.business.HeartBeatProcessor;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -16,7 +18,6 @@ import io.netty.handler.timeout.IdleStateHandler;
 
 import java.util.concurrent.TimeUnit;
 
-import static com.rxf113.chat.Server.CustomChannelInboundHandler.heartBeatData;
 
 class CustomChannelInitializer extends ChannelInitializer<SocketChannel> {
     @Override
@@ -36,7 +37,7 @@ class CustomChannelInitializer extends ChannelInitializer<SocketChannel> {
                                            Object evt) throws Exception {
                 if (evt instanceof IdleStateEvent) {
                     System.out.println("send heart beat ...");
-                    ctx.channel().writeAndFlush(new TextWebSocketFrame(JSONObject.toJSONString(heartBeatData)))
+                    ctx.channel().writeAndFlush(new TextWebSocketFrame(JSON.toJSONString(HeartBeatProcessor.HEART_BEAT_RESPONSE)))
                             .addListener(ChannelFutureListener.CLOSE_ON_FAILURE);
                 } else {
                     super.userEventTriggered(ctx, evt);
