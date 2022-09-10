@@ -1,6 +1,7 @@
 package com.rxf113.chat.server;
 
 import com.alibaba.fastjson.JSONObject;
+import com.rxf113.chat.business.*;
 import com.rxf113.chat.enums.ReceiveTypeEnum;
 import com.rxf113.chat.enums.SendTypeEnum;
 import com.rxf113.chat.utils.StaticFileUtil;
@@ -13,27 +14,20 @@ import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 入站处理
  */
-class CustomChannelInboundHandler extends SimpleChannelInboundHandler<Object> {
+public class CustomChannelInboundHandler extends SimpleChannelInboundHandler<Object> {
 
     //name - userInfo
-    private static Map<String, UserInfo> nameInfoMap = new HashMap<>();
+    public static final Map<String, UserInfo> nameInfoMap = new HashMap<>();
     //channelId - name
-    private static Map<Channel, String> channelNameMap = new HashMap<>();
+    public static final Map<Channel, String> channelNameMap = new HashMap<>();
 
-    private static Map<Channel, RoomInfo> channelRooms = new HashMap<>();
-
-    static DTO heartBeatData = new DTO();
-
-    static {
-        heartBeatData.setType(SendTypeEnum.heartBeat.getValue());
-    }
+    public static final Map<Channel, RoomInfo> channelRooms = new HashMap<>();
 
 
     /**
@@ -42,11 +36,11 @@ class CustomChannelInboundHandler extends SimpleChannelInboundHandler<Object> {
      * @param channel
      * @param returnData
      */
-    private void login(String userName, Channel channel, DTO returnData) {
+    private void login(String userName, Channel channel, com.rxf113.chat.server.DTO returnData) {
         System.out.println(userName);
         if (nameInfoMap.get(userName) == null) {
             //存储信息
-            UserInfo userInfo = new UserInfo();
+            com.rxf113.chat.server.UserInfo userInfo = new com.rxf113.chat.server.UserInfo();
             userInfo.setUserName(userName);
             userInfo.setChannel(channel);
             //userInfo.setChannelId(channel.id().toString());
@@ -72,11 +66,11 @@ class CustomChannelInboundHandler extends SimpleChannelInboundHandler<Object> {
      * @param channel
      * @param returnData
      */
-    private void call(String remoteUserName, Channel channel, DTO returnData) {
-        UserInfo answerUserInfo = nameInfoMap.get(remoteUserName);
+    private void call(String remoteUserName, Channel channel, com.rxf113.chat.server.DTO returnData) {
+        com.rxf113.chat.server.UserInfo answerUserInfo = nameInfoMap.get(remoteUserName);
         if (answerUserInfo != null) {
             if (answerUserInfo.getStatus() == 1) {
-                DTO data = new DTO();
+                com.rxf113.chat.server.DTO data = new com.rxf113.chat.server.DTO();
                 Channel answerUserInfoChannel = answerUserInfo.getChannel();
                 data.setType(SendTypeEnum.called.getValue());
                 data.setMsg(channelNameMap.get(channel));
@@ -105,7 +99,7 @@ class CustomChannelInboundHandler extends SimpleChannelInboundHandler<Object> {
      * @param customData
      * @param channel
      */
-    private void accept(DTO customData, Channel channel) {
+    private void accept(com.rxf113.chat.server.DTO customData, Channel channel) {
         customData.setType(SendTypeEnum.accepted.getValue());
         getRemoteChannel(channel).writeAndFlush(new TextWebSocketFrame(JSONObject.toJSONString(customData)));
     }
@@ -130,9 +124,9 @@ class CustomChannelInboundHandler extends SimpleChannelInboundHandler<Object> {
      * @return Channel[] 0 呼叫 1应答
      */
     private Channel[] getCallReChannel(Channel channel) {
-        RoomInfo roomInfo = channelRooms.get(channel);
+        com.rxf113.chat.server.RoomInfo roomInfo = channelRooms.get(channel);
         if (roomInfo == null) {
-            throw new CustomException("房间已解散!");
+            throw new com.rxf113.chat.server.CustomException("房间已解散!");
         }
         return new Channel[]{roomInfo.getCallChannel(), roomInfo.getReceiveChannel()};
     }
@@ -143,7 +137,7 @@ class CustomChannelInboundHandler extends SimpleChannelInboundHandler<Object> {
      * @param channel
      */
     private void hangUp(Channel channel) {
-        DTO sendMsgData = new DTO();
+        com.rxf113.chat.server.DTO sendMsgData = new com.rxf113.chat.server.DTO();
         sendMsgData.setType(SendTypeEnum.hangUp.getValue());
         sendMsgData.setMsg("对方已挂断!");
         getRemoteChannel(channel).writeAndFlush(new TextWebSocketFrame(JSONObject.toJSONString(sendMsgData)));
@@ -180,48 +174,65 @@ class CustomChannelInboundHandler extends SimpleChannelInboundHandler<Object> {
                 TextWebSocketFrame o = (TextWebSocketFrame) obj;
                 Map map = JSONObject.parseObject(o.text(), Map.class);
                 Channel channel = handlerContext.channel();
-                DTO customData = JSONObject.parseObject(map.get("data").toString(), DTO.class);
-                String msg = customData.getMsg();
-                Integer type = customData.getType();
+                com.rxf113.chat.server.DTO data = JSONObject.parseObject(map.get("data").toString(), com.rxf113.chat.server.DTO.class);
+                String msg = data.getMsg();
+                Integer type = data.getType();
                 ReceiveTypeEnum receiveTypeEnum = ReceiveTypeEnum.getReceiveTypeEnum(type);
                 //应答数据
-                DTO returnData = new DTO();
-                switch (receiveTypeEnum) {
-                    case heartBeat:
-                        System.out.println("receive hear beat ...");
-                        channel.writeAndFlush(new TextWebSocketFrame(JSONObject.toJSONString(heartBeatData)));
-                        break;
-                    case login:
-                        login(msg, channel, returnData);
-                        break;
-                    case sendOffer:
-                    case sendAnswer:
-                        offerAnswer(receiveTypeEnum, channel, msg);
-                        break;
-                    case call:
-                        call(msg, channel, returnData);
-                        break;
-                    case accept:
-                        accept(customData, channel);
-                        break;
-                    // case 拒绝:
-                    // refuse(channel);
-                    // break;
-                    case hangUp:
-                        hangUp(channel);
-                        break;
-                    case sendICE:
-                        customData.setType(SendTypeEnum.receiveICE.getValue());
-                        Channel remoteChannel = getRemoteChannel(channel);
-                        remoteChannel.writeAndFlush(new TextWebSocketFrame(JSONObject.toJSONString(customData)));
-                        break;
-                    default:
-                }
-                if (returnData.getType() != null || returnData.getMsg() != null) {
-                    channel.writeAndFlush(new TextWebSocketFrame(JSONObject.toJSONString(returnData)));
-                }
+                com.rxf113.chat.server.DTO returnData = new com.rxf113.chat.server.DTO();
+                //业务处理
+                BusinessProcessor<DTO> processor = type2ProcessorMap.get(receiveTypeEnum);
+                processor.process(channel, data);
+//                switch (receiveTypeEnum) {
+//                    case heartBeat:
+//                        System.out.println("receive hear beat ...");
+//                        channel.writeAndFlush(new TextWebSocketFrame(JSONObject.toJSONString(heartBeatData)));
+//                        break;
+//                    case login:
+//                        login(msg, channel, returnData);
+//                        break;
+//                    case sendOffer:
+//                    case sendAnswer:
+//                        offerAnswer(receiveTypeEnum, channel, msg);
+//                        break;
+//                    case call:
+//                        call(msg, channel, returnData);
+//                        break;
+//                    case accept:
+//                        accept(data, channel);
+//                        break;
+//                    // case 拒绝:
+//                    // refuse(channel);
+//                    // break;
+//                    case hangUp:
+//                        hangUp(channel);
+//                        break;
+//                    case sendICE:
+//                        data.setType(SendTypeEnum.receiveICE.getValue());
+//                        Channel remoteChannel = getRemoteChannel(channel);
+//                        remoteChannel.writeAndFlush(new TextWebSocketFrame(JSONObject.toJSONString(data)));
+//                        break;
+//                    default:
+//                }
+//                if (returnData.getType() != null || returnData.getMsg() != null) {
+//                    channel.writeAndFlush(new TextWebSocketFrame(JSONObject.toJSONString(returnData)));
+//                }
             }
+    }
 
+    Map<ReceiveTypeEnum, BusinessProcessor<DTO>> type2ProcessorMap = new HashMap<>(8, 1);
+
+    {
+        List<BusinessProcessor<DTO>> processors = Arrays.asList(
+                new CallProcessor(),
+                new AcceptProcessor(),
+                new HangUpProcessor(),
+                new HeartBeatProcessor(),
+                new LoginProcessor(),
+                new SendAnswerProcessor(),
+                new SendICEProcessor(),
+                new SendOfferProcessor());
+        type2ProcessorMap = processors.stream().collect(Collectors.toMap(BusinessProcessor::supportType, processor -> processor));
     }
 
     /**
@@ -232,9 +243,9 @@ class CustomChannelInboundHandler extends SimpleChannelInboundHandler<Object> {
      * @param msg
      */
     private void offerAnswer(ReceiveTypeEnum receiveTypeEnum, Channel channel, String msg) {
-        RoomInfo currentRoom = channelRooms.get(channel);
+        com.rxf113.chat.server.RoomInfo currentRoom = channelRooms.get(channel);
         Channel remoteChannel = receiveTypeEnum == ReceiveTypeEnum.sendOffer ? currentRoom.getReceiveChannel() : currentRoom.getCallChannel();
-        DTO offerData = new DTO();
+        com.rxf113.chat.server.DTO offerData = new com.rxf113.chat.server.DTO();
         offerData.setType(receiveTypeEnum == ReceiveTypeEnum.sendOffer ? SendTypeEnum.receiveOffer.getValue() : SendTypeEnum.receiveAnswer.getValue());
         offerData.setMsg(msg);
         remoteChannel.writeAndFlush(new TextWebSocketFrame(JSONObject.toJSONString(offerData)));
@@ -248,7 +259,7 @@ class CustomChannelInboundHandler extends SimpleChannelInboundHandler<Object> {
      * @param status        修改为
      */
     private void userInfoModify(Channel callChannel, Channel answerChannel, Integer status) {
-        RoomInfo roomInfo;
+        com.rxf113.chat.server.RoomInfo roomInfo;
         if (answerChannel == null) {
             //存在 解除room
             Channel[] channels = getCallReChannel(callChannel);
@@ -261,7 +272,7 @@ class CustomChannelInboundHandler extends SimpleChannelInboundHandler<Object> {
             nameInfoMap.get(channelNameMap.get(callChannel)).setStatus(status);
             nameInfoMap.get(channelNameMap.get(answerChannel)).setStatus(status);
             //创建room
-            roomInfo = new RoomInfo();
+            roomInfo = new com.rxf113.chat.server.RoomInfo();
             roomInfo.setCallChannel(callChannel);
             roomInfo.setReceiveChannel(answerChannel);
             roomInfo.setStatus(1);
@@ -284,8 +295,8 @@ class CustomChannelInboundHandler extends SimpleChannelInboundHandler<Object> {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable throwable) throws Exception {
-        if (throwable instanceof CustomException) {
-            DTO exceptionData = new DTO();
+        if (throwable instanceof com.rxf113.chat.server.CustomException) {
+            com.rxf113.chat.server.DTO exceptionData = new com.rxf113.chat.server.DTO();
             exceptionData.setMsg(throwable.getMessage());
             exceptionData.setType(0);
             ctx.channel().writeAndFlush(new TextWebSocketFrame(JSONObject.toJSONString(exceptionData)));
@@ -299,7 +310,7 @@ class CustomChannelInboundHandler extends SimpleChannelInboundHandler<Object> {
         Channel channel = ctx.channel();
         String name = channelNameMap.get(channel);
         channelNameMap.remove(channel);
-        UserInfo userInfo = nameInfoMap.get(name);
+        com.rxf113.chat.server.UserInfo userInfo = nameInfoMap.get(name);
         nameInfoMap.remove(name);
         //移除room信息
         if (userInfo != null) {
@@ -307,7 +318,7 @@ class CustomChannelInboundHandler extends SimpleChannelInboundHandler<Object> {
                 Channel[] channels = getCallReChannel(channel);
                 Channel remoteChannel = channels[0] == channel ? channels[1] : channels[0];
                 //通知断开
-                DTO cutOffData = new DTO();
+                com.rxf113.chat.server.DTO cutOffData = new com.rxf113.chat.server.DTO();
                 cutOffData.setType(ReceiveTypeEnum.disconnection.getValue());
                 cutOffData.setMsg("对方断开");
                 remoteChannel.writeAndFlush(new TextWebSocketFrame(JSONObject.toJSONString(cutOffData)));
