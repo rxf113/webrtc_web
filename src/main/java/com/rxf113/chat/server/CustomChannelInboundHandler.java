@@ -1,4 +1,4 @@
-package com.rxf113.chat.Server;
+package com.rxf113.chat.server;
 
 import com.alibaba.fastjson.JSONObject;
 import com.rxf113.chat.enums.ReceiveTypeEnum;

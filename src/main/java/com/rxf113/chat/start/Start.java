@@ -1,6 +1,6 @@
 package com.rxf113.chat.start;
 
-import com.rxf113.chat.Server.OnlineVideo;
+import com.rxf113.chat.server.OnlineVideo;
 
 /**
  * @author rxf113

@@ -1,4 +1,4 @@
-package com.rxf113.chat.Server;
+package com.rxf113.chat.server;
 
 import com.alibaba.fastjson.JSONObject;
 import io.netty.channel.ChannelFutureListener;
@@ -16,7 +16,7 @@ import io.netty.handler.timeout.IdleStateHandler;
 
 import java.util.concurrent.TimeUnit;
 
-import static com.rxf113.chat.Server.CustomChannelInboundHandler.heartBeatData;
+import static com.rxf113.chat.server.CustomChannelInboundHandler.heartBeatData;
 
 class CustomChannelInitializer extends ChannelInitializer<SocketChannel> {
     @Override
