@@ -25,7 +25,8 @@ public class OnlineVideo {
         try {
             Channel channel = serverBootstrap.bind(port).sync().channel();
             System.out.println("服务端启动 端口:" + port);
-            System.out.println("本地启动成功!, 页面请访问 http://localhost:9000");
+            System.out.println("本地启动成功!, 页面请访问 http://localhost:" + port);
+            System.err.println("请保证摄像头能正常使用");
             channel.closeFuture().await();
         } catch (InterruptedException e) {
             e.printStackTrace();
