@@ -4,8 +4,11 @@ import com.rxf113.chat.server.CustomException;
 import com.rxf113.chat.server.RoomInfo;
 import io.netty.channel.Channel;
 
-import static com.rxf113.chat.server.CustomChannelInboundHandler.channelRooms;
+import static com.rxf113.chat.server.CustomChannelInboundHandler.CHANNEL_ROOMS_MAP;
 
+/**
+ * @author rxf113
+ */
 public class ChannelUtil {
 
     /**
@@ -15,7 +18,7 @@ public class ChannelUtil {
      * @return Channel[] 0 呼叫 1应答
      */
     public static Channel[] getCallReChannel(Channel channel) {
-        RoomInfo roomInfo = channelRooms.get(channel);
+        RoomInfo roomInfo = CHANNEL_ROOMS_MAP.get(channel);
         if (roomInfo == null) {
             throw new CustomException("房间已解散!");
         }

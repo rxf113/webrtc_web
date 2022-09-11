@@ -10,9 +10,14 @@ import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import static com.rxf113.chat.server.CustomChannelInboundHandler.channelNameMap;
-import static com.rxf113.chat.server.CustomChannelInboundHandler.nameInfoMap;
+import static com.rxf113.chat.server.CustomChannelInboundHandler.CHANNEL_NAME_MAP;
+import static com.rxf113.chat.server.CustomChannelInboundHandler.NAME_INFO_MAP;
 
+/**
+ * 登录处理
+ *
+ * @author rxf113
+ */
 public class LoginProcessor implements BusinessProcessor<DTO> {
 
     @Override
@@ -37,16 +42,15 @@ public class LoginProcessor implements BusinessProcessor<DTO> {
      */
     private void login(String userName, Channel channel, DTO returnData) {
         System.out.println(userName);
-        if (nameInfoMap.get(userName) == null) {
+        if (NAME_INFO_MAP.get(userName) == null) {
             //存储信息
             com.rxf113.chat.server.UserInfo userInfo = new com.rxf113.chat.server.UserInfo();
             userInfo.setUserName(userName);
             userInfo.setChannel(channel);
-            //userInfo.setChannelId(channel.id().toString());
             //1 在线 2 忙碌
             userInfo.setStatus(1);
-            nameInfoMap.put(userName, userInfo);
-            channelNameMap.put(channel, userName);
+            NAME_INFO_MAP.put(userName, userInfo);
+            CHANNEL_NAME_MAP.put(channel, userName);
             returnData.setType(SendTypeEnum.loginSuccess.getValue());
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
             returnData.setMsg(userName + " 登陆成功 " + dateFormat.format(new Date()));

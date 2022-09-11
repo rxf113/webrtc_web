@@ -8,8 +8,13 @@ import com.rxf113.chat.server.RoomInfo;
 import io.netty.channel.Channel;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 
-import static com.rxf113.chat.server.CustomChannelInboundHandler.channelRooms;
+import static com.rxf113.chat.server.CustomChannelInboundHandler.CHANNEL_ROOMS_MAP;
 
+/**
+ * 向对端 发送 webrtc answer
+ *
+ * @author rxf113
+ */
 public class SendAnswerProcessor implements BusinessProcessor<DTO> {
     @Override
     public ReceiveTypeEnum supportType() {
@@ -23,7 +28,7 @@ public class SendAnswerProcessor implements BusinessProcessor<DTO> {
 
 
     private void sendAnswer(Channel channel, String msg) {
-        RoomInfo currentRoom = channelRooms.get(channel);
+        RoomInfo currentRoom = CHANNEL_ROOMS_MAP.get(channel);
         Channel remoteChannel = currentRoom.getCallChannel();
         DTO answerData = new DTO();
         answerData.setType(SendTypeEnum.receiveAnswer.getValue());
