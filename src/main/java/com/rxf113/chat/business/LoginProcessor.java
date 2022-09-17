@@ -30,7 +30,7 @@ public class LoginProcessor implements BusinessProcessor<DTO> {
         String userName = reqData.getMsg();
         DTO returnData = new DTO();
         login(userName, channel, returnData);
-        TextWebSocketFrame textWebSocketFrame = new TextWebSocketFrame(JSON.toJSONString(reqData));
+        TextWebSocketFrame textWebSocketFrame = new TextWebSocketFrame(JSON.toJSONString(returnData));
         channel.writeAndFlush(textWebSocketFrame);
     }
 
